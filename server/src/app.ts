@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import healthRouter from "./modules/health/health.route.js";
+import authRouter from "./modules/auth/auth.route.js";
 
 const app = express();
 
@@ -17,11 +19,19 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+
+// This is the health route
 app.get("/", (_req, res) => {
     res.status(200).json({
         success: true,
         message: "BankSync API is running",
     });
 });
+
+
+app.use("/api/health", healthRouter);
+
+// This is the auth route
+app.use("/api/auth", authRouter)
 
 export default app;
