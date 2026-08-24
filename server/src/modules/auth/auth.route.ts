@@ -14,11 +14,14 @@ import {
 
 import { validateRequest } from "../../middleware/validateRequest.js";
 import { authenticate } from "../../middleware/auth.middleware.js";
+import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 
 const authRouter = Router();
 
 authRouter.post(
     "/register",
+    authenticate,
+    authorizeRoles("ADMIN"),
     validateRequest(registerSchema),
     register
 );
@@ -41,6 +44,16 @@ authRouter.get("/me", authenticate, (_req, res) => {
     });
 });
 
-
+authRouter.get(
+    "/admin-test",
+    authenticate,
+    authorizeRoles("ADMIN"),
+    (_req, res) => {
+        return res.status(200).json({
+            success: true,
+            message: "Admin access granted",
+        });
+    }
+);
 
 export default authRouter;
