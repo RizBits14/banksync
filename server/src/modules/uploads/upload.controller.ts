@@ -61,3 +61,27 @@ export const createUpload = async (
         });
     }
 };
+
+export const getUploads = async (
+    _req: Request,
+    res: Response
+) => {
+    try {
+        const uploads = await Upload.find()
+            .select("-fileHash -__v")
+            .populate("uploadedBy", "name email role")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            data: uploads,
+        });
+    } catch (error) {
+        console.error("Get uploads error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve uploads",
+        });
+    }
+};
