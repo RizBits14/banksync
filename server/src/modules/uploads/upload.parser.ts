@@ -1,45 +1,52 @@
-import ExcelJS from "exceljs";
 import { parse } from "csv-parse/sync";
+import { readSheet } from "read-excel-file/node";
 
-export const parseCsvFile = (buffer: Buffer) => {
+export type ParsedRecord = Record<string, unknown>;
+
+export const parseCsvFile = (
+    buffer: Buffer
+): ParsedRecord[] => {
     const content = buffer.toString("utf-8");
 
     return parse(content, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
-    });
+    }) as ParsedRecord[];
 };
 
-export const parseExcelFile = async (buffer: Buffer) => {
-    const workbook = new ExcelJS.Workbook();
+export const parseExcelFile = async (
+    buffer: Buffer
+): Promise<ParsedRecord[]> => {
+    const rows = await readSheet(buffer);
 
-    await workbook.xlsx.load(buffer as any);
-
-    const worksheet = workbook.worksheets[0];
-
-    if (!worksheet) {
-        throw new Error("Excel file contains no worksheet");
+    if (rows.length === 0) {
+        throw new Error("Excel file contains no rows");
     }
 
-    const headers: string[] = [];
-    const records: Record<string, unknown>[] = [];
+    const headerRow = rows[0];
 
-    worksheet.getRow(1).eachCell((cell) => {
-        headers.push(String(cell.value ?? "").trim());
-    });
+    if (!headerRow) {
+        throw new Error("Excel file contains no header row");
+    }
 
-    worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
+    const headers: string[] = headerRow.map((value) =>
+        String(value ?? "").trim()
+    );
 
-        const record: Record<string, unknown> = {};
+    const records: ParsedRecord[] = [];
+
+    for (const row of rows.slice(1)) {
+        const record: ParsedRecord = {};
 
         headers.forEach((header, index) => {
-            record[header] = row.getCell(index + 1).value;
+            if (header) {
+                record[header] = row[index] ?? null;
+            }
         });
 
         records.push(record);
-    });
+    }
 
     return records;
 };
@@ -47,15 +54,14 @@ export const parseExcelFile = async (buffer: Buffer) => {
 export const parseUploadedFile = async (
     buffer: Buffer,
     mimetype: string
-) => {
+): Promise<ParsedRecord[]> => {
     if (mimetype === "text/csv") {
         return parseCsvFile(buffer);
     }
 
     if (
         mimetype ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        mimetype === "application/vnd.ms-excel"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
         return parseExcelFile(buffer);
     }

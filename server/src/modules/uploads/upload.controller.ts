@@ -1,8 +1,14 @@
 import crypto from "node:crypto";
 import type { Request, Response } from "express";
 
-import { Upload } from "./upload.model.js";
+import {
+    Upload,
+    type SourceSystem,
+} from "./upload.model.js";
 import { parseUploadedFile } from "./upload.parser.js";
+import { processTransactionBatch } from "../transactions/transaction.batch.js";
+import { saveTransactions } from "../transactions/transaction.service.js";
+import type { ColumnMapping } from "./upload.mapper.js";
 
 export const createUpload = async (
     req: Request,
@@ -10,7 +16,11 @@ export const createUpload = async (
 ) => {
     try {
         const file = req.file;
-        const { sourceSystem } = req.body;
+
+        const { sourceSystem, mapping } = req.body as {
+            sourceSystem: SourceSystem;
+            mapping: ColumnMapping;
+        };
 
         if (!file) {
             return res.status(400).json({
@@ -19,19 +29,14 @@ export const createUpload = async (
             });
         }
 
-        if (!sourceSystem) {
-            return res.status(400).json({
-                success: false,
-                message: "Source system is required",
-            });
-        }
-
         const fileHash = crypto
             .createHash("sha256")
             .update(file.buffer)
             .digest("hex");
 
-        const existingUpload = await Upload.findOne({ fileHash });
+        const existingUpload = await Upload.findOne({
+            fileHash,
+        });
 
         if (existingUpload) {
             return res.status(409).json({
@@ -45,26 +50,52 @@ export const createUpload = async (
             file.mimetype
         );
 
+        const processed = processTransactionBatch(
+            records,
+            mapping
+        );
+
         const upload = await Upload.create({
             fileName: `${Date.now()}-${file.originalname}`,
             originalName: file.originalname,
             fileHash,
             sourceSystem,
             uploadedBy: res.locals.user.userId,
-            totalRows: records.length,
+
+            status: "VALIDATED",
+
+            totalRows: processed.totalRows,
+            validRows: processed.validRows,
+            invalidRows: processed.invalidRows,
         });
+
+        await saveTransactions(
+            upload._id,
+            sourceSystem,
+            processed.validRecords
+        );
 
         return res.status(201).json({
             success: true,
-            message: "File uploaded successfully",
-            data: upload,
+            message: "File uploaded and validated successfully",
+            data: {
+                id: upload._id,
+                fileName: upload.fileName,
+                originalName: upload.originalName,
+                sourceSystem: upload.sourceSystem,
+                status: upload.status,
+                totalRows: upload.totalRows,
+                validRows: upload.validRows,
+                invalidRows: upload.invalidRows,
+                createdAt: upload.createdAt,
+            },
         });
     } catch (error) {
         console.error("Upload error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Unable to upload file",
+            message: "Unable to upload and process file",
         });
     }
 };
@@ -76,8 +107,13 @@ export const getUploads = async (
     try {
         const uploads = await Upload.find()
             .select("-fileHash -__v")
-            .populate("uploadedBy", "name email role")
-            .sort({ createdAt: -1 });
+            .populate(
+                "uploadedBy",
+                "name email role"
+            )
+            .sort({
+                createdAt: -1,
+            });
 
         return res.status(200).json({
             success: true,

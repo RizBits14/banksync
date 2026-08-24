@@ -1,6 +1,51 @@
 import mongoose, { Schema } from "mongoose";
 
-const uploadSchema = new Schema(
+export const SOURCE_SYSTEMS = [
+    "CBS",
+    "ATM",
+    "INTERNET_BANKING",
+    "MOBILE_BANKING",
+    "PAYMENT_GATEWAY",
+    "GENERAL_LEDGER",
+    "REMITTANCE",
+] as const;
+
+export type SourceSystem =
+    (typeof SOURCE_SYSTEMS)[number];
+
+export const UPLOAD_STATUSES = [
+    "UPLOADED",
+    "VALIDATING",
+    "VALIDATED",
+    "REJECTED",
+    "PROCESSING",
+    "COMPLETED",
+    "FAILED",
+] as const;
+
+export type UploadStatus =
+    (typeof UPLOAD_STATUSES)[number];
+
+interface IUpload {
+    fileName: string;
+    originalName: string;
+    fileHash: string;
+
+    sourceSystem: SourceSystem;
+
+    uploadedBy: mongoose.Types.ObjectId;
+
+    status: UploadStatus;
+
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const uploadSchema = new Schema<IUpload>(
     {
         fileName: {
             type: String,
@@ -20,15 +65,7 @@ const uploadSchema = new Schema(
 
         sourceSystem: {
             type: String,
-            enum: [
-                "CBS",
-                "ATM",
-                "INTERNET_BANKING",
-                "MOBILE_BANKING",
-                "PAYMENT_GATEWAY",
-                "GENERAL_LEDGER",
-                "REMITTANCE",
-            ],
+            enum: SOURCE_SYSTEMS,
             required: true,
         },
 
@@ -40,15 +77,7 @@ const uploadSchema = new Schema(
 
         status: {
             type: String,
-            enum: [
-                "UPLOADED",
-                "VALIDATING",
-                "VALIDATED",
-                "REJECTED",
-                "PROCESSING",
-                "COMPLETED",
-                "FAILED",
-            ],
+            enum: UPLOAD_STATUSES,
             default: "UPLOADED",
         },
 
@@ -72,4 +101,7 @@ const uploadSchema = new Schema(
     }
 );
 
-export const Upload = mongoose.model("Upload", uploadSchema);
+export const Upload = mongoose.model<IUpload>(
+    "Upload",
+    uploadSchema
+);
