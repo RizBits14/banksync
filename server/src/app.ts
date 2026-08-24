@@ -6,6 +6,7 @@ import healthRouter from "./modules/health/health.route.js";
 import authRouter from "./modules/auth/auth.route.js";
 import userRouter from "./modules/users/user.route.js";
 import uploadRouter from "./modules/uploads/upload.route.js";
+import transactionRouter from "./modules/transactions/transaction.route.js";
 
 const app = express();
 
@@ -41,5 +42,8 @@ app.use("/api/users", userRouter);
 
 // This is the upload route
 app.use("/api/uploads", uploadRouter);
+
+// This is the transaction route
+app.use("/api/transactions", transactionRouter);
 
 export default app;
