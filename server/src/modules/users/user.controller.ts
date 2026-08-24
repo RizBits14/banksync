@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import mongoose from "mongoose";
 import { User } from "./user.model.js";
 
 export const getUsers = async (_req: Request, res: Response) => {
@@ -28,6 +29,13 @@ export const updateUserStatus = async (
     try {
         const { id } = req.params;
         const { isActive } = req.body;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID",
+            });
+        }
 
         const user = await User.findByIdAndUpdate(
             id,
