@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { Request, Response } from "express";
 
 import { Upload } from "./upload.model.js";
+import { parseUploadedFile } from "./upload.parser.js";
 
 export const createUpload = async (
     req: Request,
@@ -39,12 +40,18 @@ export const createUpload = async (
             });
         }
 
+        const records = await parseUploadedFile(
+            file.buffer,
+            file.mimetype
+        );
+
         const upload = await Upload.create({
             fileName: `${Date.now()}-${file.originalname}`,
             originalName: file.originalname,
             fileHash,
             sourceSystem,
             uploadedBy: res.locals.user.userId,
+            totalRows: records.length,
         });
 
         return res.status(201).json({
