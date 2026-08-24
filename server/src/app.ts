@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import healthRouter from "./modules/health/health.route.js";
 import authRouter from "./modules/auth/auth.route.js";
+import userRouter from "./modules/users/user.route.js";
 
 const app = express();
 
@@ -33,5 +34,8 @@ app.use("/api/health", healthRouter);
 
 // This is the auth route
 app.use("/api/auth", authRouter)
+
+// This is the user route
+app.use("/api/users", userRouter);
 
 export default app;
