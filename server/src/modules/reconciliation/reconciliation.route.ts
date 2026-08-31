@@ -1,6 +1,9 @@
 import { Router } from "express";
 
-import { createReconciliation } from "./reconciliation.controller.js";
+import {
+    createReconciliation,
+    getReconciliationResults,
+} from "./reconciliation.controller.js";
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 
@@ -11,6 +14,12 @@ reconciliationRouter.post(
     authenticate,
     authorizeRoles("ADMIN", "IMPORT_OFFICER"),
     createReconciliation
+);
+
+reconciliationRouter.get(
+    "/:id/results",
+    authenticate,
+    getReconciliationResults
 );
 
 export default reconciliationRouter;

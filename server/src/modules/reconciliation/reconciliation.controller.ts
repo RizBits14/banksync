@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 
 import { Upload } from "../uploads/upload.model.js";
 import { Reconciliation } from "./reconciliation.model.js";
+import { ReconciliationResult } from "./reconciliation-result.model.js";
 import { runExactMatching } from "./reconciliation.service.js";
 
 export const createReconciliation = async (
@@ -49,6 +50,7 @@ export const createReconciliation = async (
         });
 
         const result = await runExactMatching(
+            reconciliation._id,
             sourceUploadId,
             targetUploadId
         );
@@ -72,6 +74,50 @@ export const createReconciliation = async (
         return res.status(500).json({
             success: false,
             message: "Unable to complete reconciliation",
+        });
+    }
+};
+
+export const getReconciliationResults = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid reconciliation ID",
+            });
+        }
+
+        const reconciliation = await Reconciliation.findById(id);
+
+        if (!reconciliation) {
+            return res.status(404).json({
+                success: false,
+                message: "Reconciliation not found",
+            });
+        }
+
+        const results = await ReconciliationResult.find({
+            reconciliationId: id,
+        })
+            .populate("sourceTransactionId")
+            .populate("targetTransactionId")
+            .select("-__v");
+
+        return res.status(200).json({
+            success: true,
+            data: results,
+        });
+    } catch (error) {
+        console.error("Get reconciliation results error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve reconciliation results",
         });
     }
 };
