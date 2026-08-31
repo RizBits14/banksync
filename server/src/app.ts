@@ -7,6 +7,7 @@ import authRouter from "./modules/auth/auth.route.js";
 import userRouter from "./modules/users/user.route.js";
 import uploadRouter from "./modules/uploads/upload.route.js";
 import transactionRouter from "./modules/transactions/transaction.route.js";
+import reconciliationRouter from "./modules/reconciliation/reconciliation.route.js";
 
 const app = express();
 
@@ -46,4 +47,6 @@ app.use("/api/uploads", uploadRouter);
 // This is the transaction route
 app.use("/api/transactions", transactionRouter);
 
+// This is the reconciliations route
+app.use("/api/reconciliations", reconciliationRouter);
 export default app;
