@@ -122,3 +122,43 @@ export const getReconciliationResults = async (
         });
     }
 };
+
+export const getReconciliations = async (
+    _req: Request,
+    res: Response
+) => {
+    try {
+        const reconciliations = await Reconciliation.find()
+            .select("-__v")
+            .populate(
+                "startedBy",
+                "name email role"
+            )
+            .populate(
+                "sourceUploadId",
+                "originalName sourceSystem"
+            )
+            .populate(
+                "targetUploadId",
+                "originalName sourceSystem"
+            )
+            .sort({
+                createdAt: -1,
+            });
+
+        return res.status(200).json({
+            success: true,
+            data: reconciliations,
+        });
+    } catch (error) {
+        console.error(
+            "Get reconciliations error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve reconciliations",
+        });
+    }
+};
