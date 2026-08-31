@@ -41,6 +41,11 @@ const reconciliationSchema = new Schema(
             default: 0,
         },
 
+        probableMatchCount: {
+            type: Number,
+            default: 0,
+        },
+
         unmatchedCount: {
             type: Number,
             default: 0,

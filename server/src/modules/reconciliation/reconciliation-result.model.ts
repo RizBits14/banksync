@@ -24,12 +24,20 @@ const reconciliationResultSchema = new Schema(
             type: String,
             enum: [
                 "MATCHED",
+                "PROBABLE_MATCH",
                 "UNMATCHED",
                 "AMOUNT_MISMATCH",
                 "STATUS_MISMATCH",
                 "AMOUNT_AND_STATUS_MISMATCH",
             ],
             required: true,
+        },
+
+        matchScore: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: null,
         },
     },
     {

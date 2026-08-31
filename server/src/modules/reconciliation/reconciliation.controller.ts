@@ -58,6 +58,7 @@ export const createReconciliation = async (
         reconciliation.status = "COMPLETED";
         reconciliation.totalTransactions = result.totalTransactions;
         reconciliation.matchedCount = result.matchedCount;
+        reconciliation.probableMatchCount = result.probableMatchCount;
         reconciliation.unmatchedCount = result.unmatchedCount;
         reconciliation.mismatchCount = result.mismatchCount;
 
