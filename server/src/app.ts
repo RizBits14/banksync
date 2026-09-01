@@ -10,6 +10,10 @@ import transactionRouter from "./modules/transactions/transaction.route.js";
 import reconciliationRouter from "./modules/reconciliation/reconciliation.route.js";
 import exceptionRouter from "./modules/exceptions/exception.route.js";
 import caseRouter from "./modules/cases/case.route.js";
+import auditRouter from "./modules/audit/audit.route.js";
+import dashboardRouter from "./modules/dashboard/dashboard.route.js";
+import reportRouter from "./modules/reports/report.route.js";
+import { auditRequest } from "./modules/audit/audit.middleware.js";
 
 const app = express();
 
@@ -24,6 +28,8 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(auditRequest);
 
 
 // This is the health route
@@ -57,5 +63,14 @@ app.use("/api/exceptions", exceptionRouter);
 
 // This is the case route
 app.use("/api/cases", caseRouter);
+
+// This is the audit route
+app.use("/api/audit-logs", auditRouter);
+
+// This is the dashboard route
+app.use("/api/dashboard", dashboardRouter);
+
+// This is the report route
+app.use("/api/reports", reportRouter);
 
 export default app;
