@@ -133,6 +133,39 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
+export const getCurrentUser = async (
+    _req: Request,
+    res: Response
+) => {
+    try {
+        const userId = res.locals.user.userId;
+
+        const user = await User.findById(userId).select(
+            "-password -__v"
+        );
+
+        if (!user || !user.isActive) {
+            return res.status(401).json({
+                success: false,
+                message: "User is unavailable",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Authenticated user",
+            data: user,
+        });
+    } catch (error) {
+        console.error("Get current user error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve current user",
+        });
+    }
+};
+
 export const refreshAccessToken = async (
     req: Request,
     res: Response

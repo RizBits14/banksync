@@ -5,6 +5,7 @@ import {
     refreshAccessToken,
     register,
     logout,
+    getCurrentUser,
 } from "./auth.controller.js";
 
 import {
@@ -36,13 +37,7 @@ authRouter.post("/refresh", refreshAccessToken);
 
 authRouter.post("/logout", logout);
 
-authRouter.get("/me", authenticate, (_req, res) => {
-    return res.status(200).json({
-        success: true,
-        message: "Authenticated user",
-        data: res.locals.user,
-    });
-});
+authRouter.get("/me", authenticate, getCurrentUser);
 
 authRouter.get(
     "/admin-test",
