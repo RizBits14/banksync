@@ -14,20 +14,81 @@ import auditRouter from "./modules/audit/audit.route.js";
 import dashboardRouter from "./modules/dashboard/dashboard.route.js";
 import reportRouter from "./modules/reports/report.route.js";
 import { auditRequest } from "./modules/audit/audit.middleware.js";
+import dataQualityRouter from "./modules/data-quality/data-quality.route.js";
+
+import {
+    apiLimiter,
+    authLimiter,
+} from "./middleware/security.middleware.js";
+
+import {
+    errorHandler,
+    notFoundHandler,
+} from "./middleware/error.middleware.js";
 
 const app = express();
 
 app.use(helmet());
 
+const allowedOrigins = (
+    process.env.CLIENT_URLS ||
+    process.env.CLIENT_URL ||
+    "http://localhost:5173"
+)
+    .split(",")
+    .map((origin) =>
+        origin.trim()
+    )
+    .filter(Boolean);
+
+app.set("trust proxy", 1);
+
 app.use(
     cors({
-        origin: process.env.CLIENT_URL || "http://localhost:5173",
+        origin: (
+            origin,
+            callback
+        ) => {
+            if (!origin) {
+                return callback(
+                    null,
+                    true
+                );
+            }
+
+            if (
+                allowedOrigins.includes(
+                    origin
+                )
+            ) {
+                return callback(
+                    null,
+                    true
+                );
+            }
+
+            return callback(
+                new Error(
+                    "Origin not allowed by CORS"
+                )
+            );
+        },
+
         credentials: true,
     })
 );
 
-app.use(express.json());
+app.use(
+    express.json({
+        limit: "1mb",
+    })
+);
 app.use(cookieParser());
+
+app.use(
+    "/api",
+    apiLimiter
+);
 
 app.use(auditRequest);
 
@@ -44,7 +105,11 @@ app.get("/", (_req, res) => {
 app.use("/api/health", healthRouter);
 
 // This is the auth route
-app.use("/api/auth", authRouter)
+app.use(
+    "/api/auth",
+    authLimiter,
+    authRouter
+);
 
 // This is the user route
 app.use("/api/users", userRouter);
@@ -72,5 +137,13 @@ app.use("/api/dashboard", dashboardRouter);
 
 // This is the report route
 app.use("/api/reports", reportRouter);
+
+// This is the data quality route
+app.use("/api/data-quality", dataQualityRouter);
+
+// Error handling route
+app.use(notFoundHandler);
+
+app.use(errorHandler);
 
 export default app;

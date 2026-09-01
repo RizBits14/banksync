@@ -8,6 +8,7 @@ import { Transaction } from "../transactions/transaction.model.js";
 import { Reconciliation } from "../reconciliation/reconciliation.model.js";
 import { Exception } from "../exceptions/exception.model.js";
 import { Case } from "../cases/case.model.js";
+import { DataQualityIssue } from "../data-quality/data-quality.model.js";
 
 export const getDashboardSummary =
     async (
@@ -25,6 +26,8 @@ export const getDashboardSummary =
                 caseStatuses,
                 exceptionTypes,
                 transactionsBySource,
+                totalDataQualityIssues,
+                openDataQualityIssues,
                 reconciliationSummary,
                 recentReconciliations,
             ] = await Promise.all([
@@ -33,6 +36,12 @@ export const getDashboardSummary =
                 Transaction.countDocuments(),
 
                 Reconciliation.countDocuments(),
+
+                DataQualityIssue.countDocuments(),
+
+                DataQualityIssue.countDocuments({
+                    status: "OPEN",
+                }),
 
                 Exception.countDocuments(),
 
@@ -157,6 +166,8 @@ export const getDashboardSummary =
                         openExceptions,
                         totalCases,
                         exactMatchRate,
+                        totalDataQualityIssues,
+                        openDataQualityIssues,
                     },
 
                     reconciliation:
