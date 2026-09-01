@@ -8,6 +8,7 @@ import userRouter from "./modules/users/user.route.js";
 import uploadRouter from "./modules/uploads/upload.route.js";
 import transactionRouter from "./modules/transactions/transaction.route.js";
 import reconciliationRouter from "./modules/reconciliation/reconciliation.route.js";
+import exceptionRouter from "./modules/exceptions/exception.route.js";
 
 const app = express();
 
@@ -49,4 +50,8 @@ app.use("/api/transactions", transactionRouter);
 
 // This is the reconciliations route
 app.use("/api/reconciliations", reconciliationRouter);
+
+// This is the exceptions route
+app.use("/api/exceptions", exceptionRouter);
+
 export default app;

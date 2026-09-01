@@ -5,6 +5,7 @@ import { Upload } from "../uploads/upload.model.js";
 import { Reconciliation } from "./reconciliation.model.js";
 import { ReconciliationResult } from "./reconciliation-result.model.js";
 import { runExactMatching } from "./reconciliation.service.js";
+import { generateExceptions } from "../exceptions/exception.service.js";
 
 export const createReconciliation = async (
     req: Request,
@@ -63,6 +64,10 @@ export const createReconciliation = async (
         reconciliation.mismatchCount = result.mismatchCount;
 
         await reconciliation.save();
+
+        await generateExceptions(
+            reconciliation._id.toString()
+        );
 
         return res.status(201).json({
             success: true,
