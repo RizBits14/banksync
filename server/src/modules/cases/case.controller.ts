@@ -462,6 +462,10 @@ export const submitCase = async (
         caseRecord.submittedAt =
             new Date();
 
+        caseRecord.checkedBy = null;
+        caseRecord.checkerComment = "";
+        caseRecord.resolvedAt = null;
+
         await caseRecord.save();
 
         return res.status(200).json({

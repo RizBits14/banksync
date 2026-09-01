@@ -9,6 +9,16 @@ import {
     updateInvestigation,
 } from "./case.controller.js";
 
+import {
+    approveCase,
+    returnCaseToMaker,
+} from "./checker.controller.js";
+
+import {
+    approveCaseSchema,
+    returnCaseSchema,
+} from "./checker.validation.js";
+
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
@@ -79,6 +89,22 @@ caseRouter.post(
     authenticate,
     authorizeRoles("MAKER"),
     submitCase
+);
+
+caseRouter.post(
+    "/:id/approve",
+    authenticate,
+    authorizeRoles("CHECKER"),
+    validateRequest(approveCaseSchema),
+    approveCase
+);
+
+caseRouter.post(
+    "/:id/return",
+    authenticate,
+    authorizeRoles("CHECKER"),
+    validateRequest(returnCaseSchema),
+    returnCaseToMaker
 );
 
 export default caseRouter;
