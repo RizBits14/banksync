@@ -2,45 +2,47 @@ import { Exception } from "./exception.model.js";
 import { calculateExceptionScore } from "./exception.scoring.js";
 
 import { ReconciliationResult } from "../reconciliation/reconciliation-result.model.js";
-
 import { createCaseFromException } from "../cases/case.service.js";
 
 export const generateExceptions = async (
     reconciliationId: string
 ) => {
-    const results =
-        await ReconciliationResult.find({
-            reconciliationId,
-            result: {
-                $ne: "MATCHED",
-            },
-        });
+    const results = await ReconciliationResult.find({
+        reconciliationId,
+        result: {
+            $ne: "MATCHED",
+        },
+    });
 
-    const exceptionData = results.map(
-        (result) => {
-            const { score, reasons } =
-                calculateExceptionScore(
-                    result.result
-                );
+    const exceptionData = results.map((result) => {
+        const transactionId =
+            result.sourceTransactionId ??
+            result.targetTransactionId;
 
-            return {
-                reconciliationId:
-                    result.reconciliationId,
-
-                reconciliationResultId:
-                    result._id,
-
-                transactionId:
-                    result.sourceTransactionId,
-
-                exceptionType:
-                    result.result,
-
-                score,
-                reasons,
-            };
+        if (!transactionId) {
+            throw new Error(
+                `Reconciliation result ${result._id.toString()} has no transaction reference`
+            );
         }
-    );
+
+        const missingFrom = result.sourceTransactionId
+            ? "target"
+            : "source";
+
+        const { score, reasons } = calculateExceptionScore(
+            result.result,
+            missingFrom
+        );
+
+        return {
+            reconciliationId: result.reconciliationId,
+            reconciliationResultId: result._id,
+            transactionId,
+            exceptionType: result.result,
+            score,
+            reasons,
+        };
+    });
 
     if (exceptionData.length === 0) {
         return {
@@ -49,10 +51,9 @@ export const generateExceptions = async (
         };
     }
 
-    const createdExceptions =
-        await Exception.insertMany(
-            exceptionData
-        );
+    const createdExceptions = await Exception.insertMany(
+        exceptionData
+    );
 
     for (const exception of createdExceptions) {
         await createCaseFromException(
@@ -61,10 +62,7 @@ export const generateExceptions = async (
     }
 
     return {
-        generatedCount:
-            createdExceptions.length,
-
-        caseCount:
-            createdExceptions.length,
+        generatedCount: createdExceptions.length,
+        caseCount: createdExceptions.length,
     };
 };

@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
-import type {
-    Request,
-    Response,
-} from "express";
+import type { Request, Response } from "express";
 
 import { Case } from "./case.model.js";
 import { Exception } from "../exceptions/exception.model.js";
@@ -13,8 +10,7 @@ export const approveCase = async (
 ) => {
     try {
         const { id } = req.params;
-        const { checkerComment = "" } =
-            req.body;
+        const { checkerComment = "" } = req.body;
 
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({
@@ -23,8 +19,7 @@ export const approveCase = async (
             });
         }
 
-        const caseRecord =
-            await Case.findById(id);
+        const caseRecord = await Case.findById(id);
 
         if (!caseRecord) {
             return res.status(404).json({
@@ -33,29 +28,30 @@ export const approveCase = async (
             });
         }
 
-        if (
-            caseRecord.status !==
-            "PENDING_CHECKER_APPROVAL"
-        ) {
+        if (caseRecord.status !== "PENDING_CHECKER_APPROVAL") {
             return res.status(409).json({
                 success: false,
+                message: "Case is not waiting for Checker approval",
+            });
+        }
+
+        const checkerId = res.locals.user.userId;
+
+        if (
+            caseRecord.submittedBy?.toString() === checkerId ||
+            caseRecord.assignedTo?.toString() === checkerId
+        ) {
+            return res.status(403).json({
+                success: false,
                 message:
-                    "Case is not waiting for Checker approval",
+                    "You cannot review a case you investigated or submitted",
             });
         }
 
         caseRecord.status = "APPROVED";
-
-        caseRecord.checkedBy =
-            new mongoose.Types.ObjectId(
-                res.locals.user.userId
-            );
-
-        caseRecord.checkerComment =
-            checkerComment;
-
-        caseRecord.resolvedAt =
-            new Date();
+        caseRecord.checkedBy = new mongoose.Types.ObjectId(checkerId);
+        caseRecord.checkerComment = checkerComment;
+        caseRecord.resolvedAt = new Date();
 
         await caseRecord.save();
 
@@ -68,20 +64,15 @@ export const approveCase = async (
 
         return res.status(200).json({
             success: true,
-            message:
-                "Case approved successfully",
+            message: "Case approved successfully",
             data: caseRecord,
         });
     } catch (error) {
-        console.error(
-            "Approve case error:",
-            error
-        );
+        console.error("Approve case error:", error);
 
         return res.status(500).json({
             success: false,
-            message:
-                "Unable to approve case",
+            message: "Unable to approve case",
         });
     }
 };
@@ -92,8 +83,7 @@ export const returnCaseToMaker = async (
 ) => {
     try {
         const { id } = req.params;
-        const { checkerComment } =
-            req.body;
+        const { checkerComment } = req.body;
 
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({
@@ -102,8 +92,7 @@ export const returnCaseToMaker = async (
             });
         }
 
-        const caseRecord =
-            await Case.findById(id);
+        const caseRecord = await Case.findById(id);
 
         if (!caseRecord) {
             return res.status(404).json({
@@ -112,28 +101,29 @@ export const returnCaseToMaker = async (
             });
         }
 
-        if (
-            caseRecord.status !==
-            "PENDING_CHECKER_APPROVAL"
-        ) {
+        if (caseRecord.status !== "PENDING_CHECKER_APPROVAL") {
             return res.status(409).json({
                 success: false,
-                message:
-                    "Case is not waiting for Checker review",
+                message: "Case is not waiting for Checker review",
             });
         }
 
-        caseRecord.status =
-            "RETURNED_TO_MAKER";
+        const checkerId = res.locals.user.userId;
 
-        caseRecord.checkedBy =
-            new mongoose.Types.ObjectId(
-                res.locals.user.userId
-            );
+        if (
+            caseRecord.submittedBy?.toString() === checkerId ||
+            caseRecord.assignedTo?.toString() === checkerId
+        ) {
+            return res.status(403).json({
+                success: false,
+                message:
+                    "You cannot review a case you investigated or submitted",
+            });
+        }
 
-        caseRecord.checkerComment =
-            checkerComment;
-
+        caseRecord.status = "RETURNED_TO_MAKER";
+        caseRecord.checkedBy = new mongoose.Types.ObjectId(checkerId);
+        caseRecord.checkerComment = checkerComment;
         caseRecord.resolvedAt = null;
 
         await caseRecord.save();
@@ -147,20 +137,15 @@ export const returnCaseToMaker = async (
 
         return res.status(200).json({
             success: true,
-            message:
-                "Case returned to Maker",
+            message: "Case returned to Maker",
             data: caseRecord,
         });
     } catch (error) {
-        console.error(
-            "Return case error:",
-            error
-        );
+        console.error("Return case error:", error);
 
         return res.status(500).json({
             success: false,
-            message:
-                "Unable to return case",
+            message: "Unable to return case",
         });
     }
 };

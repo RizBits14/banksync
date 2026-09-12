@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { Transaction } from "../transactions/transaction.model.js";
 import { ReconciliationResult } from "./reconciliation-result.model.js";
 import { calculateProbableMatchScore } from "./reconciliation.probable.js";
+import { areAmountsEqual } from "./reconciliation.amount.js";
 
 const PROBABLE_MATCH_THRESHOLD = 75;
 
@@ -28,57 +29,64 @@ export const runExactMatching = async (
 
     const usedTargetIds = new Set<string>();
 
+    const sourcesForProbableMatching:
+        typeof sourceTransactions = [];
+
+    // First pass: handle all transaction-ID matches.
     for (const source of sourceTransactions) {
-        // First priority: exact Transaction ID
         const exactTarget = targetTransactions.find(
             (target) =>
-                target.transactionId === source.transactionId
+                target.transactionId === source.transactionId &&
+                !usedTargetIds.has(target._id.toString())
         );
 
-        if (exactTarget) {
-            usedTargetIds.add(exactTarget._id.toString());
-
-            const amountMatches =
-                exactTarget.amount.toString() ===
-                source.amount.toString();
-
-            const statusMatches =
-                exactTarget.status === source.status;
-
-            let resultType:
-                | "MATCHED"
-                | "AMOUNT_MISMATCH"
-                | "STATUS_MISMATCH"
-                | "AMOUNT_AND_STATUS_MISMATCH";
-
-            if (amountMatches && statusMatches) {
-                matchedCount++;
-                resultType = "MATCHED";
-            } else {
-                mismatchCount++;
-
-                if (!amountMatches && !statusMatches) {
-                    resultType =
-                        "AMOUNT_AND_STATUS_MISMATCH";
-                } else if (!amountMatches) {
-                    resultType = "AMOUNT_MISMATCH";
-                } else {
-                    resultType = "STATUS_MISMATCH";
-                }
-            }
-
-            results.push({
-                reconciliationId,
-                sourceTransactionId: source._id,
-                targetTransactionId: exactTarget._id,
-                result: resultType,
-                matchScore: null,
-            });
-
+        if (!exactTarget) {
+            sourcesForProbableMatching.push(source);
             continue;
         }
 
-        // No exact transaction ID → try probable matching
+        usedTargetIds.add(exactTarget._id.toString());
+
+        const amountMatches = areAmountsEqual(
+            exactTarget.amount.toString(),
+            source.amount.toString()
+        );
+
+        const statusMatches =
+            exactTarget.status === source.status;
+
+        let resultType:
+            | "MATCHED"
+            | "AMOUNT_MISMATCH"
+            | "STATUS_MISMATCH"
+            | "AMOUNT_AND_STATUS_MISMATCH";
+
+        if (amountMatches && statusMatches) {
+            matchedCount++;
+            resultType = "MATCHED";
+        } else {
+            mismatchCount++;
+
+            if (!amountMatches && !statusMatches) {
+                resultType = "AMOUNT_AND_STATUS_MISMATCH";
+            } else if (!amountMatches) {
+                resultType = "AMOUNT_MISMATCH";
+            } else {
+                resultType = "STATUS_MISMATCH";
+            }
+        }
+
+        results.push({
+            reconciliationId,
+            sourceTransactionId: source._id,
+            targetTransactionId: exactTarget._id,
+            result: resultType,
+            matchScore: null,
+        });
+    }
+
+    // Second pass: try probable matching for remaining source records.
+    for (const source of sourcesForProbableMatching) {
         let bestTarget = null;
         let bestScore = 0;
 
@@ -138,12 +146,30 @@ export const runExactMatching = async (
         });
     }
 
+    // Third pass: include target records left over after matching.
+    for (const target of targetTransactions) {
+        if (usedTargetIds.has(target._id.toString())) {
+            continue;
+        }
+
+        unmatchedCount++;
+
+        results.push({
+            reconciliationId,
+            sourceTransactionId: null,
+            targetTransactionId: target._id,
+            result: "UNMATCHED",
+            matchScore: null,
+        });
+    }
+
     if (results.length > 0) {
         await ReconciliationResult.insertMany(results);
     }
 
     return {
-        totalTransactions: sourceTransactions.length,
+        // Each paired or one-sided result counts once.
+        totalTransactions: results.length,
         matchedCount,
         probableMatchCount,
         mismatchCount,
