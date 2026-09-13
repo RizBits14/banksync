@@ -2,7 +2,7 @@
 import type { Request, Response } from "express";
 
 import { Case } from "./case.model.js";
-import { Exception } from "../exceptions/exception.model.js";
+import { saveCaseAndException } from "./case.persistence.js";
 import { User } from "../users/user.model.js";
 import mongoose from "mongoose";
 
@@ -203,14 +203,7 @@ export const assignCase = async (
         caseRecord.assignedAt = new Date();
         caseRecord.status = "ASSIGNED";
 
-        await caseRecord.save();
-
-        await Exception.findByIdAndUpdate(
-            caseRecord.exceptionId,
-            {
-                status: "ASSIGNED",
-            }
-        );
+       await saveCaseAndException(caseRecord);
 
         return res.status(200).json({
             success: true,

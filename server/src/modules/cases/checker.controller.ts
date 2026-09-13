@@ -5,7 +5,7 @@ import type {
 } from "express";
 
 import { Case } from "./case.model.js";
-import { Exception } from "../exceptions/exception.model.js";
+import { saveCaseAndException } from "./case.persistence.js";
 
 export const approveCase = async (
     req: Request,
@@ -44,11 +44,14 @@ export const approveCase = async (
             });
         }
 
-        const checkerId = res.locals.user.userId;
+        const checkerId =
+            res.locals.user.userId;
 
         if (
-            caseRecord.submittedBy?.toString() === checkerId ||
-            caseRecord.assignedTo?.toString() === checkerId
+            caseRecord.submittedBy?.toString() ===
+                checkerId ||
+            caseRecord.assignedTo?.toString() ===
+                checkerId
         ) {
             return res.status(403).json({
                 success: false,
@@ -61,7 +64,7 @@ export const approveCase = async (
 
         caseRecord.checkedBy =
             new mongoose.Types.ObjectId(
-                res.locals.user.userId
+                checkerId
             );
 
         caseRecord.checkerComment =
@@ -70,13 +73,8 @@ export const approveCase = async (
         caseRecord.resolvedAt =
             new Date();
 
-        await caseRecord.save();
-
-        await Exception.findByIdAndUpdate(
-            caseRecord.exceptionId,
-            {
-                status: "RESOLVED",
-            }
+        await saveCaseAndException(
+            caseRecord
         );
 
         return res.status(200).json({
@@ -86,7 +84,10 @@ export const approveCase = async (
             data: caseRecord,
         });
     } catch (error) {
-        if (error instanceof mongoose.Error.VersionError) {
+        if (
+            error instanceof
+            mongoose.Error.VersionError
+        ) {
             return res.status(409).json({
                 success: false,
                 message:
@@ -144,11 +145,14 @@ export const returnCaseToMaker = async (
             });
         }
 
-        const checkerId = res.locals.user.userId;
+        const checkerId =
+            res.locals.user.userId;
 
         if (
-            caseRecord.submittedBy?.toString() === checkerId ||
-            caseRecord.assignedTo?.toString() === checkerId
+            caseRecord.submittedBy?.toString() ===
+                checkerId ||
+            caseRecord.assignedTo?.toString() ===
+                checkerId
         ) {
             return res.status(403).json({
                 success: false,
@@ -162,7 +166,7 @@ export const returnCaseToMaker = async (
 
         caseRecord.checkedBy =
             new mongoose.Types.ObjectId(
-                res.locals.user.userId
+                checkerId
             );
 
         caseRecord.checkerComment =
@@ -170,13 +174,8 @@ export const returnCaseToMaker = async (
 
         caseRecord.resolvedAt = null;
 
-        await caseRecord.save();
-
-        await Exception.findByIdAndUpdate(
-            caseRecord.exceptionId,
-            {
-                status: "ASSIGNED",
-            }
+        await saveCaseAndException(
+            caseRecord
         );
 
         return res.status(200).json({
@@ -186,7 +185,10 @@ export const returnCaseToMaker = async (
             data: caseRecord,
         });
     } catch (error) {
-        if (error instanceof mongoose.Error.VersionError) {
+        if (
+            error instanceof
+            mongoose.Error.VersionError
+        ) {
             return res.status(409).json({
                 success: false,
                 message:
