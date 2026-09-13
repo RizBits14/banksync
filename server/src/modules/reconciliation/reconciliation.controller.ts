@@ -43,6 +43,20 @@ export const createReconciliation = async (
             });
         }
 
+        const uploadsReady = [sourceUpload, targetUpload].every(
+            (upload) =>
+                upload.status === "VALIDATED" ||
+                upload.status === "COMPLETED"
+        );
+
+        if (!uploadsReady) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "Both uploads must be fully processed before reconciliation",
+            });
+        }
+
         const reconciliation = await Reconciliation.create({
             sourceUploadId,
             targetUploadId,

@@ -7,6 +7,27 @@ export interface ColumnMapping {
     status: string;
 }
 
+export const validateColumnMapping = (
+    mapping: ColumnMapping,
+    availableColumns: string[]
+) => {
+    const columns = new Set(availableColumns);
+    const errors = [];
+
+    for (const [field, column] of Object.entries(mapping)) {
+        if (column && !columns.has(column)) {
+            errors.push({
+                field,
+                column,
+                message:
+                    `Column "${column}" was not found in the uploaded file`,
+            });
+        }
+    }
+
+    return errors;
+};
+
 export const mapTransactionRecord = (
     record: Record<string, unknown>,
     mapping: ColumnMapping

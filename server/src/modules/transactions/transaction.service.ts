@@ -8,11 +8,27 @@ interface ValidProcessedRecord {
         transactionId: string;
         referenceNumber?: string;
         accountNumber?: string;
-        amount: number;
+        amount: string;
         transactionDate: Date;
         status: "SUCCESS" | "FAILED" | "PENDING" | "REVERSED";
     };
     rawRecord: Record<string, unknown>;
+}
+
+export class TransactionCleanupError extends Error {
+    constructor(saveError: unknown, cleanupError: unknown) {
+        super(
+            "Transaction saving failed and partial rows could not be removed",
+            {
+                cause: new AggregateError(
+                    [saveError, cleanupError],
+                    "Transaction save and cleanup failed"
+                ),
+            }
+        );
+
+        this.name = "TransactionCleanupError";
+    }
 }
 
 export const saveTransactions = async (
@@ -34,5 +50,18 @@ export const saveTransactions = async (
         rawRecord: record.rawRecord,
     }));
 
-    return Transaction.insertMany(transactions);
+    try {
+        return await Transaction.insertMany(transactions);
+    } catch (saveError) {
+        try {
+            await Transaction.deleteMany({ uploadId });
+        } catch (cleanupError) {
+            throw new TransactionCleanupError(
+                saveError,
+                cleanupError
+            );
+        }
+
+        throw saveError;
+    }
 };

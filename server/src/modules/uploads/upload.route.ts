@@ -16,7 +16,7 @@ uploadRouter.post(
     "/",
     authenticate,
     authorizeRoles("ADMIN", "IMPORT_OFFICER"),
-    uploadFile.single("file"),
+    uploadFile,
     validateRequest(uploadSchema),
     createUpload
 );

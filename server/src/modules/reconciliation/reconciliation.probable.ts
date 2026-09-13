@@ -1,9 +1,10 @@
 import { calculateStringSimilarity } from "./reconciliation.similarity.js";
+import { areAmountsEqual } from "./reconciliation.amount.js";
 
 interface ProbableMatchInput {
     referenceNumber?: string | null;
     accountNumber?: string | null;
-    amount: number;
+    amount: string;
     transactionDate: Date;
 }
 
@@ -13,7 +14,7 @@ export const calculateProbableMatchScore = (
 ) => {
     let score = 0;
 
-    // Reference number = 35 points
+    // Reference number: up to 35 points.
     if (source.referenceNumber && target.referenceNumber) {
         score +=
             calculateStringSimilarity(
@@ -22,7 +23,7 @@ export const calculateProbableMatchScore = (
             ) * 35;
     }
 
-    // Account number = 25 points
+    // Account number: up to 25 points.
     if (source.accountNumber && target.accountNumber) {
         score +=
             calculateStringSimilarity(
@@ -31,12 +32,12 @@ export const calculateProbableMatchScore = (
             ) * 25;
     }
 
-    // Amount = 25 points
-    if (source.amount === target.amount) {
+    // Equal decimal amounts: 25 points.
+    if (areAmountsEqual(source.amount, target.amount)) {
         score += 25;
     }
 
-    // Transaction date = 15 points
+    // Transaction date: up to 15 points.
     const dateDifference =
         Math.abs(
             source.transactionDate.getTime() -

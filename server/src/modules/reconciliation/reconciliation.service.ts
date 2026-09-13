@@ -99,13 +99,13 @@ export const runExactMatching = async (
                 {
                     referenceNumber: source.referenceNumber,
                     accountNumber: source.accountNumber,
-                    amount: Number(source.amount.toString()),
+                    amount: source.amount.toString(),
                     transactionDate: source.transactionDate,
                 },
                 {
                     referenceNumber: target.referenceNumber,
                     accountNumber: target.accountNumber,
-                    amount: Number(target.amount.toString()),
+                    amount: target.amount.toString(),
                     transactionDate: target.transactionDate,
                 }
             );

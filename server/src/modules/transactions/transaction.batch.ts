@@ -2,6 +2,8 @@ import type { ColumnMapping } from "../uploads/upload.mapper.js";
 import { mapTransactionRecord } from "../uploads/upload.mapper.js";
 import { processTransactionRow } from "./transaction.processor.js";
 
+const MAX_VALIDATION_ERROR_RECORDS = 100;
+
 export const processTransactionBatch = (
     records: Record<string, unknown>[],
     mapping: ColumnMapping
@@ -9,7 +11,7 @@ export const processTransactionBatch = (
     const validRecords = [];
     const invalidRecords = [];
 
-    for (const record of records) {
+    for (const [index, record] of records.entries()) {
         const mappedRecord = mapTransactionRecord(
             record,
             mapping
@@ -22,9 +24,22 @@ export const processTransactionBatch = (
         if (result.success) {
             validRecords.push(result);
         } else {
-            invalidRecords.push(result);
+            invalidRecords.push({
+                ...result,
+                recordNumber: index + 1,
+            });
         }
     }
+
+    const validationErrors = invalidRecords
+        .slice(0, MAX_VALIDATION_ERROR_RECORDS)
+        .map((record) => ({
+            recordNumber: record.recordNumber,
+            errors: record.errors.map((issue) => ({
+                field: issue.path.map(String).join("."),
+                message: issue.message,
+            })),
+        }));
 
     return {
         totalRows: records.length,
@@ -32,5 +47,8 @@ export const processTransactionBatch = (
         invalidRows: invalidRecords.length,
         validRecords,
         invalidRecords,
+        validationErrors,
+        validationErrorsTruncated:
+            invalidRecords.length > MAX_VALIDATION_ERROR_RECORDS,
     };
 };
