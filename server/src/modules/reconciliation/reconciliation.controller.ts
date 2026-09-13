@@ -11,6 +11,8 @@ export const createReconciliation = async (
     req: Request,
     res: Response
 ) => {
+    let reconciliationId: mongoose.Types.ObjectId | null = null;
+
     try {
         const { sourceUploadId, targetUploadId } = req.body;
 
@@ -57,7 +59,10 @@ export const createReconciliation = async (
             });
         }
 
+        reconciliationId = new mongoose.Types.ObjectId();
+
         const reconciliation = await Reconciliation.create({
+            _id: reconciliationId,
             sourceUploadId,
             targetUploadId,
             startedBy: res.locals.user.userId,
@@ -70,18 +75,24 @@ export const createReconciliation = async (
             targetUploadId
         );
 
-        reconciliation.status = "COMPLETED";
         reconciliation.totalTransactions = result.totalTransactions;
         reconciliation.matchedCount = result.matchedCount;
         reconciliation.probableMatchCount = result.probableMatchCount;
         reconciliation.unmatchedCount = result.unmatchedCount;
         reconciliation.mismatchCount = result.mismatchCount;
+        reconciliation.matchingCompletedAt = new Date();
 
+        // Persist matching progress before creating exceptions and cases.
+        // The run remains PROCESSING until every stage has succeeded.
         await reconciliation.save();
 
         await generateExceptions(
             reconciliation._id.toString()
         );
+
+        reconciliation.status = "COMPLETED";
+
+        await reconciliation.save();
 
         return res.status(201).json({
             success: true,
@@ -90,6 +101,25 @@ export const createReconciliation = async (
         });
     } catch (error) {
         console.error("Reconciliation error:", error);
+
+        if (reconciliationId) {
+            try {
+                await Reconciliation.updateOne(
+                    {
+                        _id: reconciliationId,
+                        status: "PROCESSING",
+                    },
+                    {
+                        $set: { status: "FAILED" },
+                    }
+                );
+            } catch (statusError) {
+                console.error(
+                    "Unable to mark reconciliation as failed:",
+                    statusError
+                );
+            }
+        }
 
         return res.status(500).json({
             success: false,
@@ -118,6 +148,14 @@ export const getReconciliationResults = async (
             return res.status(404).json({
                 success: false,
                 message: "Reconciliation not found",
+            });
+        }
+
+        if (reconciliation.status !== "COMPLETED") {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "Reconciliation results are available only after processing completes",
             });
         }
 

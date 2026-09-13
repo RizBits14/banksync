@@ -1,9 +1,10 @@
-import mongoose from "mongoose";
+
 import type { Request, Response } from "express";
 
 import { Case } from "./case.model.js";
 import { Exception } from "../exceptions/exception.model.js";
 import { User } from "../users/user.model.js";
+import mongoose from "mongoose";
 
 export const getCases = async (
     _req: Request,
@@ -217,6 +218,14 @@ export const assignCase = async (
             data: caseRecord,
         });
     } catch (error) {
+        if (error instanceof mongoose.Error.VersionError) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "This case changed while your request was being processed. Reload it before trying again",
+            });
+        }
+
         console.error("Assign case error:", error);
 
         return res.status(500).json({
@@ -290,6 +299,14 @@ export const startInvestigation = async (
             data: caseRecord,
         });
     } catch (error) {
+        if (error instanceof mongoose.Error.VersionError) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "This case changed while your request was being processed. Reload it before trying again",
+            });
+        }
+
         console.error(
             "Start investigation error:",
             error
@@ -381,6 +398,14 @@ export const updateInvestigation = async (
             data: caseRecord,
         });
     } catch (error) {
+        if (error instanceof mongoose.Error.VersionError) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "This case changed while your request was being processed. Reload it before trying again",
+            });
+        }
+
         console.error(
             "Update investigation error:",
             error
@@ -475,6 +500,14 @@ export const submitCase = async (
             data: caseRecord,
         });
     } catch (error) {
+        if (error instanceof mongoose.Error.VersionError) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "This case changed while your request was being processed. Reload it before trying again",
+            });
+        }
+
         console.error(
             "Submit case error:",
             error

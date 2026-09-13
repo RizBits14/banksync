@@ -12,6 +12,7 @@ const exceptionSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "ReconciliationResult",
             required: true,
+            unique: true,
         },
 
         transactionId: {

@@ -22,6 +22,7 @@ import {
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
+import { requireCompletedCaseReconciliation } from "./case-readiness.middleware.js";
 
 import {
     assignCaseSchema,
@@ -64,6 +65,7 @@ caseRouter.patch(
         "OPERATIONS_MANAGER"
     ),
     validateRequest(assignCaseSchema),
+    requireCompletedCaseReconciliation,
     assignCase
 );
 
@@ -71,6 +73,7 @@ caseRouter.patch(
     "/:id/start",
     authenticate,
     authorizeRoles("MAKER"),
+    requireCompletedCaseReconciliation,
     startInvestigation
 );
 
@@ -81,6 +84,7 @@ caseRouter.patch(
     validateRequest(
         updateInvestigationSchema
     ),
+    requireCompletedCaseReconciliation,
     updateInvestigation
 );
 
@@ -88,6 +92,7 @@ caseRouter.post(
     "/:id/submit",
     authenticate,
     authorizeRoles("MAKER"),
+    requireCompletedCaseReconciliation,
     submitCase
 );
 
@@ -96,6 +101,7 @@ caseRouter.post(
     authenticate,
     authorizeRoles("CHECKER"),
     validateRequest(approveCaseSchema),
+    requireCompletedCaseReconciliation,
     approveCase
 );
 
@@ -104,6 +110,7 @@ caseRouter.post(
     authenticate,
     authorizeRoles("CHECKER"),
     validateRequest(returnCaseSchema),
+    requireCompletedCaseReconciliation,
     returnCaseToMaker
 );
 

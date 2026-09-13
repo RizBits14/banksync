@@ -31,6 +31,11 @@ const reconciliationSchema = new Schema(
             default: "PENDING",
         },
 
+        matchingCompletedAt: {
+            type: Date,
+            default: null,
+        },
+
         totalTransactions: {
             type: Number,
             default: 0,

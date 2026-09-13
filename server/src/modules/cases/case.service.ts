@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 import { Case } from "./case.model.js";
 import { Exception } from "../exceptions/exception.model.js";
 
@@ -20,27 +22,57 @@ const determinePriority = (score: number) => {
 export const createCaseFromException = async (
     exceptionId: string
 ) => {
-    const exception = await Exception.findById(
-        exceptionId
-    );
+    const exception = await Exception.findById(exceptionId);
 
     if (!exception) {
         throw new Error("Exception not found");
     }
 
-    const existingCase = await Case.findOne({
-        exceptionId: exception._id,
-    });
+    const now = new Date();
 
-    if (existingCase) {
-        return existingCase;
+    try {
+        const caseRecord = await Case.findOneAndUpdate(
+            {
+                exceptionId: exception._id,
+            },
+            {
+                $setOnInsert: {
+                    exceptionId: exception._id,
+                    priority: determinePriority(exception.score),
+                    status: "OPEN",
+                    createdAt: now,
+                    updatedAt: now,
+                },
+            },
+            {
+                upsert: true,
+                returnDocument: "after",
+                runValidators: true,
+                setDefaultsOnInsert: true,
+                timestamps: false,
+            }
+        );
+
+        if (!caseRecord) {
+            throw new Error("Unable to create or retrieve case");
+        }
+
+        return caseRecord;
+    } catch (error) {
+        if (
+            error instanceof mongoose.mongo.MongoServerError &&
+            error.code === 11000 &&
+            error.keyPattern?.exceptionId
+        ) {
+            const existingCase = await Case.findOne({
+                exceptionId: exception._id,
+            });
+
+            if (existingCase) {
+                return existingCase;
+            }
+        }
+
+        throw error;
     }
-
-    return Case.create({
-        exceptionId: exception._id,
-        priority: determinePriority(
-            exception.score
-        ),
-        status: "OPEN",
-    });
 };
