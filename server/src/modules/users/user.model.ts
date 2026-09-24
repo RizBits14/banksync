@@ -1,4 +1,6 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, {
+    Schema,
+} from "mongoose";
 
 export type UserRole =
     | "ADMIN"
@@ -46,10 +48,27 @@ const userSchema = new Schema(
             type: Boolean,
             default: true,
         },
+
+        /*
+         * New accounts created from an
+         * approved employee request will
+         * be created with this set to true.
+         *
+         * After the employee changes the
+         * temporary password, it becomes false.
+         */
+        mustChangePassword: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,
     }
 );
 
-export const User = mongoose.model("User", userSchema);
+export const User =
+    mongoose.model(
+        "User",
+        userSchema
+    );

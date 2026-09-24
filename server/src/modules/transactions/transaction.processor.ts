@@ -1,7 +1,10 @@
 import {
     normalizeAccountNumber,
+    normalizeAmount,
     normalizeReference,
     normalizeStatus,
+    normalizeTransactionDate,
+    normalizeTransactionId,
 } from "./transaction.normalizer.js";
 
 import { transactionRowSchema } from "./transaction.validation.js";
@@ -10,7 +13,9 @@ export const processTransactionRow = (
     record: Record<string, unknown>
 ) => {
     const normalizedRecord = {
-        transactionId: String(record.transactionId ?? "").trim(),
+        transactionId: normalizeTransactionId(
+            record.transactionId
+        ),
 
         referenceNumber: normalizeReference(
             record.referenceNumber
@@ -20,11 +25,17 @@ export const processTransactionRow = (
             record.accountNumber
         ),
 
-        amount: record.amount,
+        amount: normalizeAmount(
+            record.amount
+        ),
 
-        transactionDate: record.transactionDate,
+        transactionDate: normalizeTransactionDate(
+            record.transactionDate
+        ),
 
-        status: normalizeStatus(record.status),
+        status: normalizeStatus(
+            record.status
+        ),
     };
 
     const result = transactionRowSchema.safeParse(
@@ -36,6 +47,7 @@ export const processTransactionRow = (
             success: false as const,
             errors: result.error.issues,
             rawRecord: record,
+            normalizedRecord,
         };
     }
 
@@ -43,5 +55,6 @@ export const processTransactionRow = (
         success: true as const,
         data: result.data,
         rawRecord: record,
+        normalizedRecord,
     };
 };

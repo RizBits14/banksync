@@ -1,14 +1,17 @@
 import { Router } from "express";
 
 import {
+    getActiveMakers,
     getUserById,
     getUsers,
     updateUserRole,
     updateUserStatus,
 } from "./user.controller.js";
+
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
+
 import {
     updateUserRoleSchema,
     updateUserStatusSchema,
@@ -21,6 +24,16 @@ userRouter.get(
     authenticate,
     authorizeRoles("ADMIN"),
     getUsers
+);
+
+userRouter.get(
+    "/makers",
+    authenticate,
+    authorizeRoles(
+        "ADMIN",
+        "OPERATIONS_MANAGER"
+    ),
+    getActiveMakers
 );
 
 userRouter.get(

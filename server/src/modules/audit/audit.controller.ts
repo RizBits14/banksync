@@ -3,7 +3,23 @@ import type {
     Response,
 } from "express";
 
+import mongoose from "mongoose";
+
 import { AuditLog } from "./audit.model.js";
+import { Case } from "../cases/case.model.js";
+
+const getSingleParam = (
+    value:
+        | string
+        | string[]
+        | undefined
+): string | undefined => {
+    if (Array.isArray(value)) {
+        return value[0];
+    }
+
+    return value;
+};
 
 export const getAuditLogs = async (
     req: Request,
@@ -46,6 +62,20 @@ export const getAuditLogs = async (
             filter.success = false;
         }
 
+        if (req.query.eventType) {
+            filter.eventType =
+                String(
+                    req.query.eventType
+                );
+        }
+
+        if (req.query.action) {
+            filter.action =
+                String(
+                    req.query.action
+                );
+        }
+
         const [logs, total] =
             await Promise.all([
                 AuditLog.find(filter)
@@ -70,10 +100,12 @@ export const getAuditLogs = async (
         return res.status(200).json({
             success: true,
             data: logs,
+
             pagination: {
                 page,
                 limit,
                 total,
+
                 pages: Math.ceil(
                     total / limit
                 ),
@@ -92,3 +124,124 @@ export const getAuditLogs = async (
         });
     }
 };
+
+export const getCaseAuditHistory =
+    async (
+        req: Request,
+        res: Response
+    ) => {
+        try {
+            const caseId =
+                getSingleParam(
+                    req.params.caseId
+                );
+
+            const currentUser =
+                res.locals.user;
+
+            if (
+                !caseId ||
+                !mongoose.isValidObjectId(
+                    caseId
+                )
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        message:
+                            "Invalid case ID",
+                    });
+            }
+
+            /*
+             * Confirm the case exists first.
+             */
+            const caseRecord =
+                await Case.findById(
+                    caseId
+                )
+                    .select(
+                        "assignedTo status"
+                    )
+                    .lean();
+
+            if (!caseRecord) {
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        message:
+                            "Case not found",
+                    });
+            }
+
+            /*
+             * Makers may only view the
+             * history of cases assigned to them.
+             */
+            if (
+                currentUser.role ===
+                    "MAKER" &&
+                caseRecord.assignedTo?.toString() !==
+                    currentUser.userId
+            ) {
+                return res
+                    .status(403)
+                    .json({
+                        success: false,
+                        message:
+                            "You are not authorized to view this case history",
+                    });
+            }
+
+            /*
+             * Only meaningful business events
+             * are shown in the case timeline.
+             *
+             * Raw HTTP request logs remain
+             * available on the global Audit Logs page.
+             */
+            const history =
+                await AuditLog.find({
+                    eventType:
+                        "BUSINESS_EVENT",
+
+                    entityType:
+                        "CASE",
+
+                    entityId:
+                        new mongoose.Types.ObjectId(
+                            caseId
+                        ),
+                })
+                    .populate(
+                        "actorId",
+                        "name email role"
+                    )
+                    .sort({
+                        createdAt: 1,
+                    })
+                    .lean();
+
+            return res
+                .status(200)
+                .json({
+                    success: true,
+                    data: history,
+                });
+        } catch (error) {
+            console.error(
+                "Get case audit history error:",
+                error
+            );
+
+            return res
+                .status(500)
+                .json({
+                    success: false,
+                    message:
+                        "Unable to retrieve case history",
+                });
+        }
+    };

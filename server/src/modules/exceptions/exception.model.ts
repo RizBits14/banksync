@@ -1,5 +1,36 @@
 import mongoose, { Schema } from "mongoose";
 
+const severityBreakdownSchema = new Schema(
+    {
+        label: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        score: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+
+        maxScore: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+
+        explanation: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+    },
+    {
+        _id: false,
+    }
+);
+
 const exceptionSchema = new Schema(
     {
         reconciliationId: {
@@ -45,9 +76,18 @@ const exceptionSchema = new Schema(
             default: [],
         },
 
+        breakdown: {
+            type: [severityBreakdownSchema],
+            default: [],
+        },
+
         status: {
             type: String,
-            enum: ["OPEN", "ASSIGNED", "RESOLVED"],
+            enum: [
+                "OPEN",
+                "ASSIGNED",
+                "RESOLVED",
+            ],
             default: "OPEN",
         },
     },

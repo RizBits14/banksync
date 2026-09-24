@@ -35,7 +35,11 @@ export const generateExceptions = async (
                     ? "target"
                     : "source";
 
-            const { score, reasons } =
+            const {
+                score,
+                reasons,
+                breakdown,
+            } =
                 calculateExceptionScore(
                     result.result,
                     missingFrom
@@ -54,7 +58,10 @@ export const generateExceptions = async (
                     result.result,
 
                 score,
+
                 reasons,
+
+                breakdown,
             };
         }
     );
@@ -66,7 +73,7 @@ export const generateExceptions = async (
         };
     }
 
-    // Wait for the unique index before creating any exceptions.
+    // Ensure indexes are ready before creating exceptions.
     await Exception.init();
 
     let generatedCount = 0;
@@ -77,42 +84,52 @@ export const generateExceptions = async (
         let exception;
 
         try {
-            const outcome = await Exception.findOneAndUpdate(
-                {
-                    reconciliationResultId: data.reconciliationResultId,
-                },
-                {
-                    $setOnInsert: {
-                        ...data,
-                        status: "OPEN",
-                        createdAt: now,
-                        updatedAt: now,
+            const outcome =
+                await Exception.findOneAndUpdate(
+                    {
+                        reconciliationResultId:
+                            data.reconciliationResultId,
                     },
-                },
-                {
-                    upsert: true,
-                    returnDocument: "after",
-                    includeResultMetadata: true,
-                    runValidators: true,
-                    setDefaultsOnInsert: true,
-                    timestamps: false,
-                }
-            );
+                    {
+                        $setOnInsert: {
+                            ...data,
+                            status: "OPEN",
+                            createdAt: now,
+                            updatedAt: now,
+                        },
+                    },
+                    {
+                        upsert: true,
+                        returnDocument: "after",
+                        includeResultMetadata: true,
+                        runValidators: true,
+                        setDefaultsOnInsert: true,
+                        timestamps: false,
+                    }
+                );
 
             exception = outcome.value;
 
-            if (outcome.lastErrorObject?.upserted) {
+            if (
+                outcome.lastErrorObject
+                    ?.upserted
+            ) {
                 generatedCount++;
             }
         } catch (error) {
             if (
-                error instanceof mongoose.mongo.MongoServerError &&
+                error instanceof
+                    mongoose.mongo
+                        .MongoServerError &&
                 error.code === 11000 &&
-                error.keyPattern?.reconciliationResultId
+                error.keyPattern
+                    ?.reconciliationResultId
             ) {
-                exception = await Exception.findOne({
-                    reconciliationResultId: data.reconciliationResultId,
-                });
+                exception =
+                    await Exception.findOne({
+                        reconciliationResultId:
+                            data.reconciliationResultId,
+                    });
             } else {
                 throw error;
             }
@@ -123,7 +140,9 @@ export const generateExceptions = async (
         }
 
         if (!exception) {
-            throw new Error("Unable to create or retrieve exception");
+            throw new Error(
+                "Unable to create or retrieve exception"
+            );
         }
 
         await createCaseFromException(
@@ -135,7 +154,9 @@ export const generateExceptions = async (
 
     return {
         generatedCount,
-        // Includes cases that already existed and were safely reused.
+
+        // Includes cases that already existed
+        // and were safely reused.
         caseCount,
     };
 };

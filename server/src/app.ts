@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+
 import healthRouter from "./modules/health/health.route.js";
 import authRouter from "./modules/auth/auth.route.js";
 import userRouter from "./modules/users/user.route.js";
@@ -13,12 +14,16 @@ import caseRouter from "./modules/cases/case.route.js";
 import auditRouter from "./modules/audit/audit.route.js";
 import dashboardRouter from "./modules/dashboard/dashboard.route.js";
 import reportRouter from "./modules/reports/report.route.js";
-import { auditRequest } from "./modules/audit/audit.middleware.js";
 import dataQualityRouter from "./modules/data-quality/data-quality.route.js";
+import dataCorrectionRouter from "./modules/data-corrections/data-correction.route.js";
+import accountRequestRouter from "./modules/account-requests/account-request.route.js";
+
+import {
+    auditRequest,
+} from "./modules/audit/audit.middleware.js";
 
 import {
     apiLimiter,
-    authLimiter,
 } from "./middleware/security.middleware.js";
 
 import {
@@ -83,6 +88,7 @@ app.use(
         limit: "1mb",
     })
 );
+
 app.use(cookieParser());
 
 app.use(
@@ -92,56 +98,132 @@ app.use(
 
 app.use(auditRequest);
 
-
-// This is the health route
+/*
+ * Root health check
+ */
 app.get("/", (_req, res) => {
     res.status(200).json({
         success: true,
-        message: "BankSync API is running",
+        message:
+            "BankSync API is running",
     });
 });
 
+/*
+ * Health
+ */
+app.use(
+    "/api/health",
+    healthRouter
+);
 
-app.use("/api/health", healthRouter);
-
-// This is the auth route
+/*
+ * Authentication
+ */
 app.use(
     "/api/auth",
-    authLimiter,
     authRouter
 );
 
-// This is the user route
-app.use("/api/users", userRouter);
+/*
+ * Public account requests
+ */
+app.use(
+    "/api/account-requests",
+    accountRequestRouter
+);
 
-// This is the upload route
-app.use("/api/uploads", uploadRouter);
+/*
+ * Users
+ */
+app.use(
+    "/api/users",
+    userRouter
+);
 
-// This is the transaction route
-app.use("/api/transactions", transactionRouter);
+/*
+ * Uploads
+ */
+app.use(
+    "/api/uploads",
+    uploadRouter
+);
 
-// This is the reconciliations route
-app.use("/api/reconciliations", reconciliationRouter);
+/*
+ * Transactions
+ */
+app.use(
+    "/api/transactions",
+    transactionRouter
+);
 
-// This is the exceptions route
-app.use("/api/exceptions", exceptionRouter);
+/*
+ * Reconciliations
+ */
+app.use(
+    "/api/reconciliations",
+    reconciliationRouter
+);
 
-// This is the case route
-app.use("/api/cases", caseRouter);
+/*
+ * Exceptions
+ */
+app.use(
+    "/api/exceptions",
+    exceptionRouter
+);
 
-// This is the audit route
-app.use("/api/audit-logs", auditRouter);
+/*
+ * Cases
+ */
+app.use(
+    "/api/cases",
+    caseRouter
+);
 
-// This is the dashboard route
-app.use("/api/dashboard", dashboardRouter);
+/*
+ * Audit Logs
+ */
+app.use(
+    "/api/audit-logs",
+    auditRouter
+);
 
-// This is the report route
-app.use("/api/reports", reportRouter);
+/*
+ * Dashboard
+ */
+app.use(
+    "/api/dashboard",
+    dashboardRouter
+);
 
-// This is the data quality route
-app.use("/api/data-quality", dataQualityRouter);
+/*
+ * Reports
+ */
+app.use(
+    "/api/reports",
+    reportRouter
+);
 
-// Error handling route
+/*
+ * Data Quality
+ */
+app.use(
+    "/api/data-quality",
+    dataQualityRouter
+);
+
+/*
+ * Data Corrections
+ */
+app.use(
+    "/api/data-corrections",
+    dataCorrectionRouter
+);
+
+/*
+ * Error handling
+ */
 app.use(notFoundHandler);
 
 app.use(errorHandler);

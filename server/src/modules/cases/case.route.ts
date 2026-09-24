@@ -15,14 +15,39 @@ import {
 } from "./checker.controller.js";
 
 import {
+    resolveCase,
+    closeCase,
+} from "./case-resolution.controller.js";
+
+import {
+    getCaseDataset,
+} from "./case-dataset.controller.js";
+
+import {
     approveCaseSchema,
     returnCaseSchema,
 } from "./checker.validation.js";
 
-import { authenticate } from "../../middleware/auth.middleware.js";
-import { authorizeRoles } from "../../middleware/authorizeRoles.js";
-import { validateRequest } from "../../middleware/validateRequest.js";
-import { requireCompletedCaseReconciliation } from "./case-readiness.middleware.js";
+import {
+    resolveCaseSchema,
+    closeCaseSchema,
+} from "./case-resolution.validation.js";
+
+import {
+    authenticate,
+} from "../../middleware/auth.middleware.js";
+
+import {
+    authorizeRoles,
+} from "../../middleware/authorizeRoles.js";
+
+import {
+    validateRequest,
+} from "../../middleware/validateRequest.js";
+
+import {
+    requireCompletedCaseReconciliation,
+} from "./case-readiness.middleware.js";
 
 import {
     assignCaseSchema,
@@ -31,6 +56,11 @@ import {
 
 const caseRouter = Router();
 
+/*
+ * ----------------------------------------
+ * CASE LIST
+ * ----------------------------------------
+ */
 caseRouter.get(
     "/",
     authenticate,
@@ -44,6 +74,29 @@ caseRouter.get(
     getCases
 );
 
+/*
+ * ----------------------------------------
+ * CASE DATASET INSPECTION
+ * ----------------------------------------
+ */
+caseRouter.get(
+    "/:id/dataset/:side",
+    authenticate,
+    authorizeRoles(
+        "ADMIN",
+        "MAKER",
+        "CHECKER",
+        "AUDITOR",
+        "OPERATIONS_MANAGER"
+    ),
+    getCaseDataset
+);
+
+/*
+ * ----------------------------------------
+ * CASE DETAILS
+ * ----------------------------------------
+ */
 caseRouter.get(
     "/:id",
     authenticate,
@@ -57,6 +110,11 @@ caseRouter.get(
     getCaseById
 );
 
+/*
+ * ----------------------------------------
+ * ASSIGN CASE
+ * ----------------------------------------
+ */
 caseRouter.patch(
     "/:id/assign",
     authenticate,
@@ -64,23 +122,39 @@ caseRouter.patch(
         "ADMIN",
         "OPERATIONS_MANAGER"
     ),
-    validateRequest(assignCaseSchema),
+    validateRequest(
+        assignCaseSchema
+    ),
     requireCompletedCaseReconciliation,
     assignCase
 );
 
+/*
+ * ----------------------------------------
+ * START / REOPEN INVESTIGATION
+ * ----------------------------------------
+ */
 caseRouter.patch(
     "/:id/start",
     authenticate,
-    authorizeRoles("MAKER"),
+    authorizeRoles(
+        "MAKER"
+    ),
     requireCompletedCaseReconciliation,
     startInvestigation
 );
 
+/*
+ * ----------------------------------------
+ * UPDATE INVESTIGATION
+ * ----------------------------------------
+ */
 caseRouter.patch(
     "/:id/investigation",
     authenticate,
-    authorizeRoles("MAKER"),
+    authorizeRoles(
+        "MAKER"
+    ),
     validateRequest(
         updateInvestigationSchema
     ),
@@ -88,30 +162,101 @@ caseRouter.patch(
     updateInvestigation
 );
 
+/*
+ * ----------------------------------------
+ * SUBMIT TO CHECKER
+ * ----------------------------------------
+ */
 caseRouter.post(
     "/:id/submit",
     authenticate,
-    authorizeRoles("MAKER"),
+    authorizeRoles(
+        "MAKER"
+    ),
     requireCompletedCaseReconciliation,
     submitCase
 );
 
+/*
+ * ----------------------------------------
+ * CHECKER APPROVAL
+ * ----------------------------------------
+ */
 caseRouter.post(
     "/:id/approve",
     authenticate,
-    authorizeRoles("CHECKER"),
-    validateRequest(approveCaseSchema),
+    authorizeRoles(
+        "CHECKER"
+    ),
+    validateRequest(
+        approveCaseSchema
+    ),
     requireCompletedCaseReconciliation,
     approveCase
 );
 
+/*
+ * ----------------------------------------
+ * CHECKER RETURN
+ * ----------------------------------------
+ */
 caseRouter.post(
     "/:id/return",
     authenticate,
-    authorizeRoles("CHECKER"),
-    validateRequest(returnCaseSchema),
+    authorizeRoles(
+        "CHECKER"
+    ),
+    validateRequest(
+        returnCaseSchema
+    ),
     requireCompletedCaseReconciliation,
     returnCaseToMaker
+);
+
+/*
+ * ----------------------------------------
+ * RESOLVE APPROVED CASE
+ * ----------------------------------------
+ *
+ * APPROVED -> RESOLVED
+ *
+ * Admin / Operations Manager confirms
+ * that the approved corrective action
+ * was actually completed.
+ */
+caseRouter.post(
+    "/:id/resolve",
+    authenticate,
+    authorizeRoles(
+        "ADMIN",
+        "OPERATIONS_MANAGER"
+    ),
+    validateRequest(
+        resolveCaseSchema
+    ),
+    requireCompletedCaseReconciliation,
+    resolveCase
+);
+
+/*
+ * ----------------------------------------
+ * CLOSE RESOLVED CASE
+ * ----------------------------------------
+ *
+ * RESOLVED -> CLOSED
+ */
+caseRouter.post(
+    "/:id/close",
+    authenticate,
+    authorizeRoles(
+        "ADMIN",
+        "OPERATIONS_MANAGER"
+    ),
+    validateRequest(
+        closeCaseSchema
+    ),
+    requireCompletedCaseReconciliation,
+    closeCase
 );
 
 export default caseRouter;

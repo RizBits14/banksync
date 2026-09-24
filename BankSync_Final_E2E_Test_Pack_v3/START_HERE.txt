@@ -1,0 +1,93 @@
+BANKSYNC FINAL E2E TEST PACK v3
+================================
+
+THIS PACK MATCHES THE NEW RECONCILIATION PROFILE / PAIRING RULES.
+
+HOW BANKSYNC KNOWS WHICH FILES BELONG TOGETHER
+----------------------------------------------
+The filename is only a test aid. The real BankSync rule is the selected
+Reconciliation Profile. A profile defines the approved Source system,
+Target system, and business reason.
+
+FINAL COMPARISON PAIRS
+----------------------
+
+P01 — ATM Posting Reconciliation
+Source: T01_SOURCE_ATM__P01_ATM_TO_CBS__CLEAN.csv
+Upload as: ATM
+
+Target: T02_TARGET_CBS__P01_ATM_TO_CBS__CLEAN.csv
+Upload as: Core Banking System (CBS)
+
+Profile: ATM Posting Reconciliation (ATM_TO_CBS)
+
+Reason:
+ATM records the channel transaction. CBS should show the corresponding
+customer-account posting.
+
+
+P02 — Internet Banking Posting Reconciliation
+Source: T03_SOURCE_INTERNET_BANKING__P02_IB_TO_CBS__MIXED.csv
+Upload as: Internet Banking
+
+Target: T04_TARGET_CBS__P02_IB_TO_CBS__MIXED.csv
+Upload as: Core Banking System (CBS)
+
+Profile: Internet Banking Posting Reconciliation
+(INTERNET_BANKING_TO_CBS)
+
+Reason:
+Internet Banking records the customer instruction. CBS should show the
+resulting account posting.
+
+
+P03 — Core Banking to General Ledger Reconciliation
+Source: T05_SOURCE_CBS__P03_CBS_TO_GL__PARTIAL.csv
+Upload as: Core Banking System (CBS)
+
+Target: T06_TARGET_GENERAL_LEDGER__P03_CBS_TO_GL__PARTIAL.csv
+Upload as: General Ledger
+
+Profile: Core Banking to General Ledger Reconciliation
+(CBS_TO_GENERAL_LEDGER)
+
+Reason:
+CBS contains operational account postings. The General Ledger should show
+their accounting-book counterpart.
+
+
+DQ-ONLY FILES
+-------------
+T07 — Remittance — duplicate transaction ID
+T08 — Mobile Banking — duplicate reference
+T09 — Payment Gateway — reversal without original
+T10 — ATM — reversal amount mismatch
+
+Do NOT reconcile T07-T10 before the Data Quality workflow is completed.
+
+TEST ORDER
+----------
+1. Upload T01 as ATM.
+2. Upload T02 as Core Banking System (CBS).
+3. Run P01 with ATM Posting Reconciliation.
+
+4. Upload T03 as Internet Banking.
+5. Upload T04 as Core Banking System (CBS).
+6. Run P02 with Internet Banking Posting Reconciliation.
+
+7. Upload T05 as Core Banking System (CBS).
+8. Upload T06 as General Ledger.
+9. Confirm T05 is partially validated with rejected rows.
+10. Run P03 with Core Banking to General Ledger Reconciliation.
+
+11. Upload T07-T10 one at a time and run the Data Quality workflow.
+
+PAIRING NEGATIVE TEST
+---------------------
+When ATM_TO_CBS is selected:
+- Source dropdown should show ATM files only.
+- Target dropdown should show CBS files only.
+- Internet Banking / Mobile Banking / General Ledger / Remittance /
+  Payment Gateway files must not appear in the wrong dropdown.
+
+The backend should also reject an invalid pair even if the frontend is bypassed.
